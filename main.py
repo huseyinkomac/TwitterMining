@@ -1,4 +1,6 @@
+#coding=utf-8
 import tweepy
+from pymongo import MongoClient
 from tweepy import OAuthHandler
 
 consumer_key = 'nXx5fXyILAgLvlHt2Ko4uMJRJ'
@@ -10,3 +12,24 @@ auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
 
 api = tweepy.API(auth)
+
+
+def tweet_to_json(tweet):
+    tweetcolls = {
+        'created_at': tweet.created_at,
+    }
+    return tweetcolls
+
+search_results = api.search(q="grip", count=100)
+client = MongoClient('172.17.0.1', 27017)
+db = client.tweets
+for tweet in search_results:
+    db.tweetcolls.insert(tweet_to_json(tweet))
+'''
+def find_disease(){
+
+}
+'''
+
+
+
