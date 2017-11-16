@@ -2,7 +2,16 @@
 import tweepy
 from pymongo import MongoClient
 from tweepy import OAuthHandler
-import re
+from tweepy import Stream
+from tweepy.streaming import StreamListener
+
+
+class MyListener(StreamListener):
+    def on_data(self, data):
+        try:
+            tweet_to_json(data)
+        except BaseException as e:
+            print ("Error on_data: %s" % str(e))
 
 
 def tweet_to_json(tweet):
@@ -18,44 +27,9 @@ def tweet_to_json(tweet):
         'contributors': tweet.contributors,
         'retweeted': tweet.retweeted,
         'entities': tweet.entities,
-        'id':tweet.id
+        'id': tweet.id
     }
     return tweetcolls
-
-
-emoticons_str = r"""
-    (?:
-        [:=;]
-        [oO\-]? 
-        [D\)\]\(\]/\\OpP]
-    )"""
-
-regex_str = [
-    emoticons_str,
-    r'<[^>]+>',
-    r'(?:@[\w_]+)',
-    r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)",
-    r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+',
-
-    r'(?:(?:\d+,?)+(?:\.?\d+)?)',
-    r"(?:[a-z][a-z'\-_]+[a-z])",
-    r'(?:[\w_]+)',
-    r'(?:\S)'
-]
-
-tokens_re = re.compile(r'(' + '|'.join(regex_str) + ')', re.VERBOSE | re.IGNORECASE)
-emoticon_re = re.compile(r'^' + emoticons_str + '$', re.VERBOSE | re.IGNORECASE)
-
-
-def tokenize(s):
-    return tokens_re.findall(s)
-
-
-def preprocess(s, lowercase=False):
-    tokens = tokenize(s)
-    if lowercase:
-        tokens = [token if emoticon_re.search(token) else token.lower() for token in tokens]
-    return tokens
 
 
 if __name__ == '__main__':
@@ -66,6 +40,8 @@ if __name__ == '__main__':
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_secret)
     api = tweepy.API(auth)
+    twitter_stream = Stream(auth, MyListener())
+    twitter_stream.filter(track=['#grip'])
 
     search_results = api.search(q="grip", rpp=100)
 
