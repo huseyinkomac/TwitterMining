@@ -5,19 +5,10 @@ from tweepy import OAuthHandler
 
 
 class MyStreamListener(tweepy.StreamListener):
-    counter = 0
-
-    def __init__(self, max_tweets=1000, *args, **kwargs):
-        self.max_tweets = max_tweets
-        self.counter = 0
-        super(self).__init__(*args, **kwargs)
-
-    def on_connect(self):
-        self.counter = 0
 
     def on_status(self, status):
-        self.counter += 1
-        db.tojson.insert_one(status._json)
+        if status.coordinates:
+            db.tweetcolls.insert_one(tweet_to_json(status))
 
 
 def tweet_to_json(tweet):
@@ -26,16 +17,13 @@ def tweet_to_json(tweet):
         'text': tweet.text,
         'language': tweet.lang,
         'location': tweet.geo,
-        'metadata': tweet.metadata,
-        'coordinates': tweet.coordinates,
-        'source_url': tweet.source_url,
-        'source': tweet.source,
-        'contributors': tweet.contributors,
-        'retweeted': tweet.retweeted,
-        'entities': tweet.entities,
-        'id': tweet.id
+        'coordinates': tweet.coordinates
     }
     return tweetcolls
+
+
+def searching_algorithm(tweet):
+    txt = tweet.text
 
 
 if __name__ == '__main__':
@@ -48,31 +36,19 @@ if __name__ == '__main__':
     api = tweepy.API(auth)
     client = MongoClient('172.17.0.1', 27017)
     db = client.tweets
-    myStreamListener = MyStreamListener(max_tweets=100)
+    myStreamListener = MyStreamListener()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    keywords = ["Jupiter",
-                "Python",
-                "Data Mining",
-                "Machine Learning",
-                "Data Science",
-                "Big Data",
-                "DataMining",
-                "MachineLearning",
-                "DataScience",
-                "BigData",
-                "IoT",
-                "#R",
-                ]
-
-    # Start a filter with an error counter of 20
+    keywords = ["flu", "grip", "illness", "sick", "not feeling good", "ill", "cold", "cholera", "diphtheria"]
+    myStream.filter(track=keywords)
+    '''
     for error_counter in range(20):
         try:
             myStream.filter(track=keywords)
-            print("Tweets collected: %s" % myStream.listener.counter)
             break
         except Exception as error:
             print("ERROR# %s" % (error_counter + 1))
             print (error)
+    '''
     '''
     search_results = api.search(q="grip", rpp=100)
     client = MongoClient('172.17.0.1', 27017)
