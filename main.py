@@ -17,7 +17,7 @@ class MyStreamListener(tweepy.StreamListener):
 
 def get_the_type(tweet):
     for i, word in enumerate(keywords):
-        if word in tweet.text:
+        if word in tweet.text.lower().strip():
             if i <= 12:
                 types = "flu"
             elif 13 <= i <= 19:
