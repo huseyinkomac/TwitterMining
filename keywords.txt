@@ -1,0 +1,4 @@
+influenza,flu,cough,fever,sore throat,headache,sneeze,chill,vomit,strep throat,body ache,runny nose,nausea,fatigue,
+diarrhea,intestinal pain,dehydration,sewage,infected water,infected food,cholera,
+swollen glands,diphtheria,membrane formation,mucous membranes,
+norovirus,norwalk,infected water,gastroenteritis

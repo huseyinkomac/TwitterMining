@@ -7,8 +7,16 @@ from tweepy import OAuthHandler
 class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
-        if status.coordinates:
-            db.tweetcolls.insert_one(tweet_to_json(status))
+        last_tweet = get_last_tweet()
+        if status.coordinates and last_tweet != status.text:
+            tweet_columns = tweet_to_json(status)
+            iter(tweet_columns).next()['type'] = type
+            db.tweetcolls.insert_one(tweet_columns)
+
+
+def get_last_tweet():
+    last_tweet = list(db.tweetcolls.find({}).sort('$natural', -1).limit(1))
+    return last_tweet.text
 
 
 def tweet_to_json(tweet):
@@ -20,10 +28,6 @@ def tweet_to_json(tweet):
         'coordinates': tweet.coordinates
     }
     return tweetcolls
-
-
-def searching_algorithm(tweet):
-    txt = tweet.text
 
 
 if __name__ == '__main__':
@@ -38,8 +42,10 @@ if __name__ == '__main__':
     db = client.tweets
     myStreamListener = MyStreamListener()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    keywords = ["flu", "grip", "illness", "sick", "not feeling good", "ill", "cold", "cholera", "diphtheria"]
-    myStream.filter(track=keywords)
+    flu = []
+    with open("keywords.txt") as f:
+        keywords = f.read().split(",")
+    myStream.filter(track=keywords, languages=["en"])
     '''
     for error_counter in range(20):
         try:
