@@ -8,15 +8,25 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
         last_tweet = get_last_tweet()
-        if status.coordinates and last_tweet != status.text:
+        if status.coordinates and (not last_tweet or last_tweet.text != status.text):
+            for i, word in enumerate(keywords):
+                if word in status:
+                    if i <= 12:
+                        type = "flu"
+                    elif 13 <= i <= 19:
+                        type = "cholera"
+                    elif 20 <= i <= 23:
+                        type = "diphtheria"
+                    else:
+                        type = "norovirus"
             tweet_columns = tweet_to_json(status)
-            iter(tweet_columns).next()['type'] = type
+            tweet_columns["type"] = type
             db.tweetcolls.insert_one(tweet_columns)
 
 
 def get_last_tweet():
     last_tweet = list(db.tweetcolls.find({}).sort('$natural', -1).limit(1))
-    return last_tweet.text
+    return last_tweet
 
 
 def tweet_to_json(tweet):
@@ -42,7 +52,6 @@ if __name__ == '__main__':
     db = client.tweets
     myStreamListener = MyStreamListener()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    flu = []
     with open("keywords.txt") as f:
         keywords = f.read().split(",")
     myStream.filter(track=keywords, languages=["en"])
@@ -63,4 +72,8 @@ if __name__ == '__main__':
         print (dir(tweet))
         if tweet.lang == 'tr':
             db.tweetcolls.insert(tweet_to_json(tweet))
+    flu = ['influenza', 'flu', 'cough', 'fever', 'sore throat', 'headache', 'sneeze', 'chill', 'vomit', 'strep throat', 'body ache', 'runny nose', 'nausea']
+    cholera = ['diarrhea', 'intestinal pain', 'dehydration', 'sewage', 'infected water', 'infected food', 'cholera']
+    diphtheria = ['diphtheria', 'swollen glands', 'diphtheria', 'membrane formation', 'mucous membranes']
+    norovirus = ['norovirus', 'norwalk', 'gastroenteritis']
     '''
