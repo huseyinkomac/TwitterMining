@@ -8,24 +8,31 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
         last_tweet = get_last_tweet()
-        if status.coordinates and (not last_tweet or last_tweet.text != status.text):
-            for i, word in enumerate(keywords):
-                if word in status:
-                    if i <= 12:
-                        type = "flu"
-                    elif 13 <= i <= 19:
-                        type = "cholera"
-                    elif 20 <= i <= 23:
-                        type = "diphtheria"
-                    else:
-                        type = "norovirus"
+        if status.coordinates and (not last_tweet or last_tweet["text"] != status.text):
+            types = get_the_type(status)
             tweet_columns = tweet_to_json(status)
-            tweet_columns["type"] = type
+            tweet_columns["type"] = types
             db.tweetcolls.insert_one(tweet_columns)
+
+
+def get_the_type(tweet):
+    for i, word in enumerate(keywords):
+        if word in tweet.text:
+            if i <= 12:
+                types = "flu"
+            elif 13 <= i <= 19:
+                types = "cholera"
+            elif 20 <= i <= 23:
+                types = "diphtheria"
+            else:
+                types = "norovirus"
+            return types
 
 
 def get_last_tweet():
     last_tweet = list(db.tweetcolls.find({}).sort('$natural', -1).limit(1))
+    if last_tweet:
+        last_tweet = last_tweet[0]
     return last_tweet
 
 
@@ -72,8 +79,4 @@ if __name__ == '__main__':
         print (dir(tweet))
         if tweet.lang == 'tr':
             db.tweetcolls.insert(tweet_to_json(tweet))
-    flu = ['influenza', 'flu', 'cough', 'fever', 'sore throat', 'headache', 'sneeze', 'chill', 'vomit', 'strep throat', 'body ache', 'runny nose', 'nausea']
-    cholera = ['diarrhea', 'intestinal pain', 'dehydration', 'sewage', 'infected water', 'infected food', 'cholera']
-    diphtheria = ['diphtheria', 'swollen glands', 'diphtheria', 'membrane formation', 'mucous membranes']
-    norovirus = ['norovirus', 'norwalk', 'gastroenteritis']
     '''
