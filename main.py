@@ -40,8 +40,6 @@ def tweet_to_json(tweet):
     tweetcolls = {
         'created_at': tweet.created_at,
         'text': tweet.text,
-        'language': tweet.lang,
-        'location': tweet.geo,
         'coordinates': tweet.coordinates
     }
     return tweetcolls
