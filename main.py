@@ -8,21 +8,21 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
         last_tweet = get_last_tweet()
-        if status.coordinates and (not last_tweet or last_tweet["text"] != status.text):
+        if not last_tweet or last_tweet['features'][0]['properties']['text'] != status.text:
             types = get_the_type(status)
-            tweet_columns = tweet_to_json(status)
-            tweet_columns["type"] = types
+            tweet_columns = tweet_to_geojson(status)
+            tweet_columns['features'][0]['properties']['types'] = types
             db.tweetcolls.insert_one(tweet_columns)
 
 
 def get_the_type(tweet):
     for i, word in enumerate(keywords):
         if word in tweet.text.lower().strip():
-            if i <= 12:
+            if i <= 11:
                 types = "flu"
-            elif 13 <= i <= 19:
+            elif 12 <= i <= 18:
                 types = "cholera"
-            elif 20 <= i <= 23:
+            elif 19 <= i <= 22:
                 types = "diphtheria"
             else:
                 types = "norovirus"
@@ -36,11 +36,18 @@ def get_last_tweet():
     return last_tweet
 
 
-def tweet_to_json(tweet):
+def tweet_to_geojson(tweet):
     tweetcolls = {
-        'created_at': tweet.created_at,
-        'text': tweet.text,
-        'coordinates': tweet.coordinates
+        "type": "FeatureCollection",
+        "features": [{
+            "type": "Feature",
+            "geometry": tweet.coordinates,
+            "properties": {
+                "text": tweet.text,
+                "created_at": tweet.created_at,
+                "types": "types"
+            }
+        }]
     }
     return tweetcolls
 
