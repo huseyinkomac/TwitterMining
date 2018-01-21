@@ -1,5 +1,6 @@
 #coding=utf-8
 import tweepy
+import re
 from pymongo import MongoClient
 from tweepy import OAuthHandler
 
@@ -35,6 +36,48 @@ def get_last_tweet():
         last_tweet = last_tweet[0]
     return last_tweet
 
+emoticons_str = r"""
+    (?:
+        [:=;] # Eyes
+        [oO\-]? # Nose (optional)
+        [D\)\]\(\]/\\OpP] # Mouth
+    )"""
+
+regex_str = [
+    emoticons_str,
+    r'<[^>]+>',  # HTML tags
+    r'(?:@[\w_]+)',  # @-mentions
+    r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)",  # hash-tags
+    r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+',  # URLs
+    r'(?:(?:\d+,?)+(?:\.?\d+)?)',  # numbers
+    r"(?:[a-z][a-z'\-_]+[a-z])",  # words with - and '
+    r'(?:[\w_]+)',  # other words
+    r'(?:\S)'  # anything else
+]
+
+tokens_re = re.compile(r'(' + '|'.join(regex_str) + ')', re.VERBOSE | re.IGNORECASE)
+emoticon_re = re.compile(r'^' + emoticons_str + '$', re.VERBOSE | re.IGNORECASE)
+
+
+def tokenize(s):
+    return tokens_re.findall(s)
+
+
+def handle_processed_list(s):
+    array = pre_process_text(s)
+    for i, stuff in enumerate(array):
+        if stuff.startswith("http") or stuff.startswith("RT"):
+            del array[i]
+    after_deletion = ' '.join(array)
+    return after_deletion
+
+
+def pre_process_text(s, lowercase=False):
+    tokens = tokenize(s)
+    if lowercase:
+        tokens = [token if emoticon_re.search(token) else token.lower() for token in tokens]
+    return tokens
+
 
 def tweet_to_geojson(tweet):
     tweetcolls = {
@@ -43,7 +86,7 @@ def tweet_to_geojson(tweet):
             "type": "Feature",
             "geometry": tweet.coordinates,
             "properties": {
-                "text": tweet.text,
+                "text": handle_processed_list(tweet.text),
                 "created_at": tweet.created_at,
                 "types": "types"
             }
@@ -67,21 +110,7 @@ if __name__ == '__main__':
     with open("keywords.txt") as f:
         keywords = f.read().split(",")
     myStream.filter(track=keywords, languages=["en"])
+
     '''
-    for error_counter in range(20):
-        try:
-            myStream.filter(track=keywords)
-            break
-        except Exception as error:
-            print("ERROR# %s" % (error_counter + 1))
-            print (error)
-    '''
-    '''
-    search_results = api.search(q="grip", rpp=100)
-    client = MongoClient('172.17.0.1', 27017)
-    db = client.tweets
-    for tweet in search_results:
-        print (dir(tweet))
-        if tweet.lang == 'tr':
-            db.tweetcolls.insert(tweet_to_json(tweet))
+    don't forget to add coordinates part in if.
     '''
