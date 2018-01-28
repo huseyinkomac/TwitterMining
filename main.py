@@ -9,7 +9,7 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
         last_tweet = get_last_tweet()
-        if not last_tweet or last_tweet['features'][0]['properties']['text'] != status.text:
+        if status.coordinates and (not last_tweet or last_tweet['features'][0]['properties']['text'] != status.text):
             types = get_the_type(status)
             tweet_columns = tweet_to_geojson(status)
             tweet_columns['features'][0]['properties']['types'] = types
@@ -104,13 +104,10 @@ if __name__ == '__main__':
     auth.set_access_token(access_token, access_secret)
     api = tweepy.API(auth)
     client = MongoClient('172.17.0.1', 27017)
-    db = client.tweets
+    db = client.tweets2
     myStreamListener = MyStreamListener()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
     with open("keywords.txt") as f:
         keywords = f.read().split(",")
     myStream.filter(track=keywords, languages=["en"])
 
-    '''
-    don't forget to add coordinates part in if.
-    '''
